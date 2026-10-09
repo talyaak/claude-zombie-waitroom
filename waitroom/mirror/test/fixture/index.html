@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>waitroom fixture</title>
+<style>html,body{margin:0;background:#101018;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c" width="640" height="360"></canvas>
+<script>
+// Original test scene: a red square that moves on D presses, and a blue dot
+// that keeps the page repainting so screencast frames keep coming.
+const c = document.getElementById('c'), g = c.getContext('2d')
+let x = 40
+addEventListener('keydown', e => { if (e.code === 'KeyD') x = Math.min(560, x + 40) })
+const frame = t => {
+  g.fillStyle = '#101018'; g.fillRect(0, 0, 640, 360)
+  g.fillStyle = '#e04040'; g.fillRect(x, 150, 60, 60)
+  g.fillStyle = '#4060ff'; g.fillRect(600 + Math.sin(t / 300) * 10, 330, 12, 12)
+  requestAnimationFrame(frame)
+}
+requestAnimationFrame(frame)
+</script></body></html>
