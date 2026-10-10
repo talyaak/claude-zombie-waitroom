@@ -48,6 +48,76 @@ Then in Claude Code:
 
 WASD move, space or click fire, Q/E look left and right, Esc returns focus to Claude. Tab and arrow keys are not bound.
 
+## Run locally
+
+Work from a checkout of this repo. Everything below runs on your machine; nothing is published.
+
+### 1. Build the mirror
+
+```sh
+scripts/build.sh          # npm ci --ignore-scripts, then tsc into mirror/dist
+```
+
+This needs Node 20+ and npm. It downloads no browser.
+
+### 2. Run the tests
+
+```sh
+claude plugin validate ./ --strict   # manifest, hooks and engine rules
+claude plugin test ./                # 21 mod tests: state machine, commands, bridge
+cd mirror && node --test test/mirror.test.mjs   # mirror tests: starts Chromium and a local fixture page
+```
+
+The mirror tests need a Chromium. They use `WAITROOM_BROWSER` if set; otherwise they skip. The fixture page is `mirror/test/fixture/index.html`.
+
+### 3. Run the plugin in Claude Code
+
+```sh
+claude --plugin-dir ./waitroom
+```
+
+Then in the session:
+
+```
+/waitroom status            # off, with the URL
+/waitroom url https://...   # optional: change the default URL
+/waitroom cache persist     # optional: keep the browser profile (saves re-downloads)
+/waitroom on
+```
+
+Send a prompt that takes more than about 2 seconds. The pane opens with the game. Use WASD, space and Q/E in the pane; Esc returns focus to Claude. The pane needs a terminal that draws images (Ghostty or kitty). Elsewhere you'll see a text line instead.
+
+### 4. Run the mirror on its own (debugging)
+
+The child can run without Claude. It prints a `hello` line, then waits for `control.json` in its own temp dir:
+
+```sh
+WAITROOM_URL=https://example.com WAITROOM_CACHE=fresh node mirror/dist/index.js
+```
+
+Read the `dir` from the first stdout line, then write:
+
+```json
+{ "paused": false, "cols": 160, "rows": 45, "stop": false, "events": [] }
+```
+
+to `<dir>/control.json`. Frames arrive as `{"type":"frame","width":640,"height":360,"file":"..."}` lines. Each file is raw RGBA and is deleted after three newer frames. To stop, write `"stop": true`, or kill the process; the child also exits when its parent does.
+
+Useful environment variables:
+
+| Variable | Does |
+| --- | --- |
+| `WAITROOM_URL` | Page to load (https, or http on 127.0.0.1 only) |
+| `WAITROOM_BROWSER` | Path to Chromium, Chrome or Edge, if not found automatically |
+| `WAITROOM_CACHE` | `fresh` (default) or `persist` |
+
+### Troubleshooting
+
+- **"no Chromium, Chrome or Edge found"**: set `WAITROOM_BROWSER`.
+- **Browser exits as root**: the child adds `--no-sandbox` automatically when running as root.
+- **Leftover temp dirs**: `waitroom-*` dirs under the temp dir. A new child removes ones whose owner is gone.
+- **Game stuck on the title screen**: the first start downloads a large file. Wait, or use `cache persist` for later runs.
+
 ## Uninstall
 
 ```sh
