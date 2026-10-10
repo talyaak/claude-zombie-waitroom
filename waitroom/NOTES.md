@@ -12,7 +12,9 @@
 | M5 polish | Partial. `/waitroom url`, `status`, `cache` done. `stats` is a stub. The narrow-terminal button is not built. README/install wording is written. |
 | M6 pane quality | Not done. |
 
-## Blocking decision: the default URL
+## Decision: the default URL (resolved)
+
+Decided by the user: the Zombies URL is the default. Config stays in `hooks/config.ts`; the change is easy to revert. The IP and commercial-game risk is stated in the README. Earlier findings:
 
 The default URL (`https://vel.gg/bo1z/verruckt`) loads **Call of Duty: Black Ops, Zombies "Verruckt"**, a commercial Activision game, from a third-party site. Measured in the spike:
 
@@ -20,7 +22,6 @@ The default URL (`https://vel.gg/bo1z/verruckt`) loads **Call of Duty: Black Ops
 - Pressing a key starts a browser-side download (24%, about 30 s left in one sample). Each fresh profile repeats it.
 - The spike stopped there. Gameplay, pointer look and fps during play were not measured.
 
-Proposed: keep the URL as config only and do not publish a default. Confirm before the default ships. The mod works with any user-supplied URL.
 
 ## Cache setting (`/waitroom cache fresh|persist`)
 
@@ -39,13 +40,15 @@ Proposed: keep the URL as config only and do not publish a default. Confirm befo
 
 1. `turn.complete` has no `isAborted`. The field is `reason: 'aborted'`. The code uses `reason`.
 2. Mod entry is `hooks/register.tsx`, not `.ts`, because the pane uses JSX. The Client surface module is `hooks/pane-input.tsx`.
-3. Control channel: no CDP port and no token. The child launches Chromium with puppeteer's default pipe transport, so there is no TCP debugging port to protect. The mod→child channel is a file (`control.json`) in the child's private `mkdtemp` dir, written with `$.fs.write`. The child polls it at 50 ms. Reason: `$.process.spawn` closes stdin after one string, so there is no live stdin channel.
+3. Control channel: no CDP port and no token. The child launches Chromium with `pipe: true`. An earlier note said puppeteer's default was already a pipe; it is not. The default is a WebSocket on a random localhost port, which we removed. The mod→child channel is a file (`control.json`) in the child's private `mkdtemp` dir, written with `$.fs.write`. The child polls it at 50 ms. Reason: `$.process.spawn` closes stdin after one string, so there is no live stdin channel.
 4. Key events report presses only, not releases. Movement is a press held for 180 ms per event.
 5. `tool.check` returns `ask` before the dialog opens, so the mod can pause on it. The resume signal is any later `tool.check` or `tool.call`. After an AskUserQuestion, resume waits for the next tool event or turn end.
 6. The default `tsconfig` of the mirror targets NodeNext; the browser detector is `browser.ts`.
 7. `--no-sandbox` is passed only when the child runs as root (containers). Desktop users keep the sandbox.
 8. Screencast needs the game tab in the foreground. The child calls `bringToFront()` before starting it.
-9. The stop path: `stop` in `control.json`, or the child exits when its parent PID changes. A hard-killed child (SIGKILL) cannot clean up its browser. In testing this left orphaned Chromium processes; they were killed by hand. This is a real gap. Mitigation to build next: start Chromium in its own process group and kill the group from the parent watchdog.
+9. Orphaned Chromium (fixed). A SIGKILLed child left Chromium running: 10 processes with the WebSocket transport. The probe (`scratchpad/orphan-probe`) showed that with `pipe: true` Chrome exits when its parent dies: 0 left. The child now uses the pipe. Verified on the real child: SIGKILL leaves 0 Chromium processes.
+    - A SIGKILLed child also cannot remove its temp dir. Temp dirs are named `waitroom-<pid>-*`, and each new child removes dirs whose PID is no longer running. Verified: the orphaned dir was removed on the next start.
+    - Normal stop still goes through `stop` in `control.json` and `browser.close()`.
 10. `$.plugin.root`, `$.fs.write` to the child's temp dir and `$.process.spawn` pass `validate --strict`.
 11. The child needs `node` on PATH. Documented in the README.
 12. Gating-hook warnings from `validate` (for `command.run`, `tool.check`, `tool.call`, `ui.close`) are informational. The hooks always return `next(e)`, so no `.catch` was added.

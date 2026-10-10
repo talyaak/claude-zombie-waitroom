@@ -4,9 +4,10 @@ A Claude Code mod. While Claude works, it shows a hosted browser game in a termi
 
 ## Important
 
-- **The game URL is yours.** waitroom ships no game and no default URL you should trust. Set it with `/waitroom url <https-url>`.
-- **The site is third-party and unvetted.** Your browser loads it like any visit, so the site sees your IP address. The site and anything it loads are its responsibility, not this mod's.
-- Some sites download large files into the browser profile on first play. See `cache` below.
+- **The default game is Call of Duty: Black Ops, Zombies "Verruckt".** It is loaded from a third-party site (`https://vel.gg/bo1z/verruckt`) that this mod does not control. The game is Activision's commercial property. waitroom does not bundle, copy or redistribute any of it. Your browser downloads what the site serves, into its profile.
+- Change the URL with `/waitroom url <https-url>`. The default lives in one place, `hooks/config.ts`.
+- **The site is third-party and unvetted.** It sees your IP address like any visit. Its content and the files it downloads are its responsibility, not this mod's.
+- The first start downloads a large file (about 309 MB at the time of writing). See `cache` below.
 
 ## Requirements
 

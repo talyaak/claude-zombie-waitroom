@@ -1,7 +1,7 @@
 // The waitroom mirror child. Launched by the mod with `node dist/index.js`.
 // Frames out as JSON lines on stdout; control and lifecycle in control.json.
 // Exits on a `stop` control event, on a missing parent, or on a fatal error.
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -70,6 +70,20 @@ async function readControl(): Promise<Control | undefined> {
   }
 }
 
+// A child killed with SIGKILL cannot remove its own dir. Remove dirs whose owner is gone.
+async function sweepStale() {
+  const root = tmpdir()
+  for (const name of await readdir(root).catch(() => [] as string[])) {
+    const m = /^waitroom-(\d+)-/.exec(name)
+    if (!m) continue
+    try {
+      process.kill(Number(m[1]), 0) // throws when no such process
+    } catch {
+      await rm(join(root, name), { recursive: true, force: true }).catch(() => {})
+    }
+  }
+}
+
 async function main() {
   if (!/^https:\/\//.test(url) && !/^http:\/\/127\.0\.0\.1[:/]/.test(url)) {
     return fail('WAITROOM_URL must be an https:// address', 2)
@@ -77,13 +91,18 @@ async function main() {
   const exe = findBrowser()
   if (!exe) return fail('no Chromium, Chrome or Edge found; set WAITROOM_BROWSER to its path', 3)
 
-  dir = await mkdtemp(join(tmpdir(), 'waitroom-'))
+  await sweepStale()
+  // The owner's PID is in the name, so a later start can tell an abandoned dir from a live one.
+  dir = await mkdtemp(join(tmpdir(), `waitroom-${process.pid}-`))
   const profile = persist ? join(tmpdir(), 'waitroom-profile') : join(dir, 'profile')
   emit({ type: 'hello', dir, pid: process.pid })
 
   browser = await puppeteer.launch({
     executablePath: exe,
     headless: true,
+    // Pipe, not a debugging port: no local port to expose, and Chrome exits when
+    // the pipe closes, so a killed child does not leave the browser running.
+    pipe: true,
     userDataDir: profile,
     defaultViewport: VIEW,
     args: [
