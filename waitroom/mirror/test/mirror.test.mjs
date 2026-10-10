@@ -16,6 +16,8 @@ const root = join(here, '..')
 const fixture = readFileSync(join(here, 'fixture', 'index.html'))
 const COLS = 80
 const ROWS = 20
+const W = 640
+const H = 360
 
 // Use WAITROOM_BROWSER when set; otherwise the Playwright Chromium this container ships.
 const PLAYWRIGHT_CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
@@ -49,7 +51,11 @@ function launch(url) {
       const msg = JSON.parse(buf.slice(0, i))
       buf = buf.slice(i + 1)
       if (msg.type === 'hello') hello = msg
-      else if (msg.type === 'frame') frames.push(msg)
+      else if (msg.type === 'frame') {
+        // The child deletes old frame files; read this one now.
+        msg.rgba = readFileSync(msg.file)
+        frames.push(msg)
+      }
       else statuses.push(msg)
     }
   })
@@ -67,7 +73,7 @@ function launch(url) {
 const control = (dir, extra) =>
   writeFile(join(dir, 'control.json'), JSON.stringify({ paused: false, cols: COLS, rows: ROWS, stop: false, events: [], ...extra }))
 
-test('mirror: frames flow, cells have the right size, key press changes the view, stop cleans up', { skip: !hasBrowser() && 'no browser' }, async t => {
+test('mirror: frames flow as RGBA files, a key press changes the view, stop cleans up', { skip: !hasBrowser() && 'no browser' }, async t => {
   const { server, url } = await startServer()
   t.after(() => server.close())
   const m = launch(url)
@@ -80,18 +86,17 @@ test('mirror: frames flow, cells have the right size, key press changes the view
 
   assert.ok(await m.waitFor(() => m.frames.length >= 5, 20000), `frames arrive (got ${m.frames.length}); stderr: ${m.stderr()}`)
   const f0 = m.frames.at(-1)
-  assert.equal(f0.cols, COLS)
-  assert.equal(f0.rows, ROWS)
-  assert.equal(Buffer.from(f0.cells, 'base64').length, COLS * ROWS * 12, 'cells are u32 triplets per cell')
+  assert.equal(f0.width, W)
+  assert.equal(f0.height, H)
+  assert.equal(f0.rgba.length, W * H * 4, 'RGBA, four bytes per pixel')
 
   // The red square's leftmost column must move right after a D press.
+  // Scan the square's middle row (the fixture draws it at y 150..210).
   const leftmostRed = f => {
-    const buf = Buffer.from(f.cells, 'base64')
     let best = Infinity
-    for (let i = 0; i < COLS * ROWS; i++) {
-      const fg = buf.readUInt32LE(i * 12 + 4)
-      const r = (fg >>> 16) & 255, g = (fg >>> 8) & 255
-      if (r > 180 && g < 90) best = Math.min(best, i % COLS)
+    for (let x = 0; x < W; x++) {
+      const i = (180 * W + x) * 4
+      if (f.rgba[i] > 180 && f.rgba[i + 1] < 90) best = Math.min(best, x)
     }
     return best
   }
@@ -99,7 +104,7 @@ test('mirror: frames flow, cells have the right size, key press changes the view
   const mark = m.frames.length
   await control(dir, { events: [{ id: 1, kind: 'move', dir: 'd' }] })
   const moved = await m.waitFor(() => m.frames.slice(mark).some(f => leftmostRed(f) > startCol), 10000)
-  assert.ok(moved, `key press moves the square right (start column ${startCol})`)
+  assert.ok(moved, `key press moves the square right (start pixel column ${startCol})`)
 
   await control(dir, { stop: true })
   const exited = await new Promise(r => {

@@ -19,7 +19,7 @@ export type Outbound =
   | { type: 'hello'; dir: string; pid: number }
   | { type: 'status'; text: string }
   | { type: 'error'; message: string }
-  | { type: 'frame'; cols: number; rows: number; cells: string }
+  | { type: 'frame'; width: number; height: number; file: string } // RGBA, width*height*4 bytes
 
 export const emit = (msg: Outbound) => {
   process.stdout.write(JSON.stringify(msg) + '\n')

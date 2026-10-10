@@ -19,7 +19,7 @@ export type Outbound =
   | { type: 'hello'; dir: string; pid: number }
   | { type: 'status'; text: string }
   | { type: 'error'; message: string }
-  | { type: 'frame'; cols: number; rows: number; cells: string }
+  | { type: 'frame'; width: number; height: number; file: string }
 
 // One stdout line from the child, or undefined when it is not one of ours.
 export function parseLine(line: string): Outbound | undefined {

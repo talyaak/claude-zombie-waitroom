@@ -1,7 +1,7 @@
 // The waitroom mirror child. Launched by the mod with `node dist/index.js`.
 // Frames out as JSON lines on stdout; control and lifecycle in control.json.
 // Exits on a `stop` control event, on a missing parent, or on a fatal error.
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -25,6 +25,8 @@ let browser: Browser | undefined
 let dir = ''
 let cdp: CDPSession | undefined
 let decode: Decoder | undefined
+let frameNo = 0
+const KEEP_FRAMES = 3 // the terminal may still be reading the previous file
 let control: Control = { paused: true, cols: 0, rows: 0, stop: false, events: [] }
 let lastEventId = 0
 let screencasting = false
@@ -129,11 +131,15 @@ async function main() {
     void cdp?.send('Page.screencastFrameAck', { sessionId: frame.sessionId }).catch(() => {})
     if (busy || control.cols === 0 || control.paused || !decode) return // drop, never queue
     busy = true
-    const { cols, rows } = control
-    decode(frame.data, cols, rows)
-      .then((cells: string) => {
+    const n = ++frameNo
+    decode(frame.data, VIEW.width, VIEW.height)
+      .then(async (rgba: string) => {
+        // A new name per frame: the terminal redraws only when the source changes.
+        const file = join(dir, `frame-${n}.rgba`)
+        await writeFile(file, Buffer.from(rgba, 'base64'))
+        await unlink(join(dir, `frame-${n - KEEP_FRAMES}.rgba`)).catch(() => {})
         framesSent++
-        emit({ type: 'frame', cols, rows, cells })
+        emit({ type: 'frame', width: VIEW.width, height: VIEW.height, file })
       })
       .catch((err: unknown) => emit({ type: 'status', text: `decode failed: ${String(err).slice(0, 120)}` }))
       .finally(() => {

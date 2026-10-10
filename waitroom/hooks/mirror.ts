@@ -4,6 +4,8 @@
 import { type Action, MAX_EVENTS, type Control, type InputEvent, parseLine } from './protocol'
 import { type Effect, type Ev, type Shown, initial, step } from './state'
 
+export type Frame = { file: string; width: number; height: number }
+
 export const PANE = 'waitroom'
 export const VIEW = 'view'
 export const INPUT = 'input'
@@ -15,7 +17,7 @@ export type Io = {
   write: (path: string, text: string) => Promise<void>
   openPane: () => Promise<{ isPlaced: boolean }>
   closePane: () => Promise<void>
-  blit: (cells: string) => Promise<unknown>
+  blit: (frame: Frame) => Promise<unknown>
   toast: (text: string) => void
   now: () => Promise<number>
   after: (ms: number, fn: () => void) => { cancel: () => void }
@@ -35,18 +37,16 @@ let childDir: string | undefined
 let nextId = 0
 let writing: Promise<void> = Promise.resolve()
 let control: Control = { paused: false, cols: 0, rows: 0, stop: false, events: [] }
-let latest: string | undefined
+let latest: Frame | undefined
 
 export const phaseOf = () => shown.phase
 export const roundStart = () => openedAt
 
-// The newest frame, or blank cells of the given size until one arrives.
-export function cellsFor(cols: number, rows: number): string {
-  if (latest) return latest
-  const words = new Uint32Array(cols * rows * 3)
-  for (let i = 0; i < cols * rows; i++) words[i * 3] = 0x20
+// The newest frame as an Image source, or a 1x1 black picture until one arrives.
+export function sourceFor(): { file: string; format: 'rgba'; width: number; height: number } | { rgba: string; width: number; height: number } {
+  if (latest) return { file: latest.file, format: 'rgba', width: latest.width, height: latest.height }
   // Uint8Array.toBase64 is in the mod's environment; the DOM lib typing lacks it.
-  return (new Uint8Array(words.buffer) as unknown as { toBase64(): string }).toBase64()
+  return { rgba: (new Uint8Array(4) as unknown as { toBase64(): string }).toBase64(), width: 1, height: 1 }
 }
 
 // Queued so writes land in order; each write is the whole current control.
@@ -96,8 +96,8 @@ async function consume(io: Io, stream: AsyncIterable<{ stream: string; text: str
           childDir = msg.dir
           writeControl(io)
         } else if (msg.type === 'frame') {
-          latest = msg.cells
-          void io.blit(msg.cells)
+          latest = { file: msg.file, width: msg.width, height: msg.height }
+          void io.blit(latest)
         } else if (msg.type === 'error') {
           io.toast(`waitroom: ${msg.message}`)
         }

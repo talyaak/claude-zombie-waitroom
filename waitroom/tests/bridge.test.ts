@@ -9,7 +9,7 @@ function fakeIo(lines: string[]) {
   const timers: Array<{ ms: number; fn: () => void; cancelled: boolean }> = []
   const writes: Array<{ path: string; text: string }> = []
   const calls: string[] = []
-  const blits: string[] = []
+  const blits: Array<{ file: string; width: number; height: number }> = []
   const spawns: Array<{ argv: string[]; env: Record<string, string> }> = []
   const io: Io = {
     root: '/plugin/root',
@@ -32,8 +32,8 @@ function fakeIo(lines: string[]) {
     closePane: async () => {
       calls.push('close')
     },
-    blit: async cells => {
-      blits.push(cells)
+    blit: async frame => {
+      blits.push(frame)
       return {}
     },
     toast: text => calls.push(`toast:${text}`),
@@ -55,7 +55,7 @@ function fakeIo(lines: string[]) {
 
 test('bridge: a turn opens the pane, runs the child, hands back, closes and stops it', async () => {
   const hello = JSON.stringify({ type: 'hello', dir: '/tmp/waitroom-test', pid: 1 })
-  const frame = JSON.stringify({ type: 'frame', cols: 80, rows: 20, cells: 'AAAA' })
+  const frame = JSON.stringify({ type: 'frame', width: 640, height: 360, file: '/tmp/waitroom-test/frame-1.rgba' })
   const f = fakeIo([hello, frame])
 
   await drive(f.io, { kind: 'turnStart' })
@@ -70,7 +70,7 @@ test('bridge: a turn opens the pane, runs the child, hands back, closes and stop
   expect(f.spawns[0].env.WAITROOM_URL).toBe('https://example.com/game')
 
   await flush()
-  expect(f.blits).toEqual(['AAAA'])
+  expect(f.blits).toEqual([{ file: '/tmp/waitroom-test/frame-1.rgba', width: 640, height: 360 }])
   const hello0 = f.writes.at(-1)
   expect(hello0?.path).toBe('/tmp/waitroom-test/control.json')
 

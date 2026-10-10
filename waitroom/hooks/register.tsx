@@ -2,7 +2,7 @@ import type { Elements, Register } from 'claude-code'
 
 import { USAGE, parse } from './commands'
 import { DEFAULT_URL, STORE, cacheMode } from './config'
-import { type Io, INPUT, PANE, VIEW, addInput, cellsFor, drive, phaseOf, roundStart, setView } from './mirror'
+import { type Io, INPUT, PANE, VIEW, addInput, drive, phaseOf, roundStart, setView, sourceFor } from './mirror'
 import { toAction } from './input-map'
 import type { Ev } from './state'
 
@@ -41,7 +41,7 @@ export const register: Register = on => {
       write: (path, text) => $.fs.write(path, text),
       openPane: () => $.ui.open({ id: PANE, title: 'waitroom', focus: true }),
       closePane: () => $.ui.close({ id: PANE }),
-      blit: cells => $.ui.blit({ requestId: PANE, key: VIEW, cells }),
+      blit: frame => $.ui.blit({ requestId: PANE, key: VIEW, source: { file: frame.file, format: 'rgba', width: frame.width, height: frame.height } }),
       toast: text => $.ui.toast(text),
       now: () => $.clock.now(),
       after: (ms, fn) => $.clock.after(ms, fn),
@@ -86,7 +86,7 @@ export const register: Register = on => {
         write: (path, text) => $.fs.write(path, text),
         openPane: () => $.ui.open({ id: PANE, title: 'waitroom', focus: true }),
         closePane: () => $.ui.close({ id: PANE }),
-        blit: cells => $.ui.blit({ requestId: PANE, key: VIEW, cells }),
+        blit: frame => $.ui.blit({ requestId: PANE, key: VIEW, source: { file: frame.file, format: 'rgba', width: frame.width, height: frame.height } }),
         toast: text => $.ui.toast(text),
         now: () => $.clock.now(),
         after: (ms, fn) => $.clock.after(ms, fn),
@@ -108,7 +108,7 @@ export const register: Register = on => {
         write: (path, text) => $.fs.write(path, text),
         openPane: () => $.ui.open({ id: PANE, title: 'waitroom', focus: true }),
         closePane: () => $.ui.close({ id: PANE }),
-        blit: cells => $.ui.blit({ requestId: PANE, key: VIEW, cells }),
+        blit: frame => $.ui.blit({ requestId: PANE, key: VIEW, source: { file: frame.file, format: 'rgba', width: frame.width, height: frame.height } }),
         toast: text => $.ui.toast(text),
         now: () => $.clock.now(),
         after: (ms, fn) => $.clock.after(ms, fn),
@@ -127,7 +127,7 @@ export const register: Register = on => {
         write: (path, text) => $.fs.write(path, text),
         openPane: () => $.ui.open({ id: PANE, title: 'waitroom', focus: true }),
         closePane: () => $.ui.close({ id: PANE }),
-        blit: cells => $.ui.blit({ requestId: PANE, key: VIEW, cells }),
+        blit: frame => $.ui.blit({ requestId: PANE, key: VIEW, source: { file: frame.file, format: 'rgba', width: frame.width, height: frame.height } }),
         toast: text => $.ui.toast(text),
         now: () => $.clock.now(),
         after: (ms, fn) => $.clock.after(ms, fn),
@@ -150,7 +150,7 @@ export const register: Register = on => {
         write: (path, text) => $.fs.write(path, text),
         openPane: () => $.ui.open({ id: PANE, title: 'waitroom', focus: true }),
         closePane: () => $.ui.close({ id: PANE }),
-        blit: cells => $.ui.blit({ requestId: PANE, key: VIEW, cells }),
+        blit: frame => $.ui.blit({ requestId: PANE, key: VIEW, source: { file: frame.file, format: 'rgba', width: frame.width, height: frame.height } }),
         toast: text => $.ui.toast(text),
         now: () => $.clock.now(),
         after: (ms, fn) => $.clock.after(ms, fn),
@@ -172,7 +172,7 @@ export const register: Register = on => {
         write: (path, text) => $.fs.write(path, text),
         openPane: () => $.ui.open({ id: PANE, title: 'waitroom', focus: true }),
         closePane: () => $.ui.close({ id: PANE }),
-        blit: cells => $.ui.blit({ requestId: PANE, key: VIEW, cells }),
+        blit: frame => $.ui.blit({ requestId: PANE, key: VIEW, source: { file: frame.file, format: 'rgba', width: frame.width, height: frame.height } }),
         toast: text => $.ui.toast(text),
         now: () => $.clock.now(),
         after: (ms, fn) => $.clock.after(ms, fn),
@@ -191,7 +191,7 @@ export const register: Register = on => {
         write: (path, text) => $.fs.write(path, text),
         openPane: () => $.ui.open({ id: PANE, title: 'waitroom', focus: true }),
         closePane: () => $.ui.close({ id: PANE }),
-        blit: cells => $.ui.blit({ requestId: PANE, key: VIEW, cells }),
+        blit: frame => $.ui.blit({ requestId: PANE, key: VIEW, source: { file: frame.file, format: 'rgba', width: frame.width, height: frame.height } }),
         toast: text => $.ui.toast(text),
         now: () => $.clock.now(),
         after: (ms, fn) => $.clock.after(ms, fn),
@@ -210,7 +210,7 @@ export const register: Register = on => {
         write: (path, text) => $.fs.write(path, text),
         openPane: () => $.ui.open({ id: PANE, title: 'waitroom', focus: true }),
         closePane: () => $.ui.close({ id: PANE }),
-        blit: cells => $.ui.blit({ requestId: PANE, key: VIEW, cells }),
+        blit: frame => $.ui.blit({ requestId: PANE, key: VIEW, source: { file: frame.file, format: 'rgba', width: frame.width, height: frame.height } }),
         toast: text => $.ui.toast(text),
         now: () => $.clock.now(),
         after: (ms, fn) => $.clock.after(ms, fn),
@@ -226,7 +226,7 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'Pane', requestId: PANE }, ($, e) => {
     if (e.surface !== 'terminal') {
-      // Pixel panes need a terminal that draws Raster; other surfaces get a line.
+      // Pixel panes need a terminal that draws Image; other surfaces get a line.
       const { Box, Text } = $.ui.resolve(e)
       return (
         <Box flexDirection="column">
@@ -236,8 +236,9 @@ export const register: Register = on => {
     }
     // The surface check above narrows at run time; the resolve type does not follow it.
     const els = $.ui.resolve(e) as Elements['terminal']
+    // 16:9 picture. A cell is about twice as tall as wide, so rows are cols * 9/16 / 2.
     const cols = Math.min(160, Math.max(20, (e.viewport?.columns ?? 80) - 4))
-    const rows = Math.min(60, Math.max(6, (e.viewport?.rows ?? 24) - 8))
+    const rows = Math.min(Math.round((cols * 9) / 32), Math.max(6, (e.viewport?.rows ?? 24) - 8))
     void setView(
       {
         root: $.plugin.root,
@@ -249,7 +250,7 @@ export const register: Register = on => {
         write: (path, text) => $.fs.write(path, text),
         openPane: () => $.ui.open({ id: PANE, title: 'waitroom', focus: true }),
         closePane: () => $.ui.close({ id: PANE }),
-        blit: cells => $.ui.blit({ requestId: PANE, key: VIEW, cells }),
+        blit: frame => $.ui.blit({ requestId: PANE, key: VIEW, source: { file: frame.file, format: 'rgba', width: frame.width, height: frame.height } }),
         toast: text => $.ui.toast(text),
         now: () => $.clock.now(),
         after: (ms, fn) => $.clock.after(ms, fn),
@@ -259,7 +260,7 @@ export const register: Register = on => {
     )
     return (
       <els.Box flexDirection="column">
-        <els.Raster key={VIEW} columns={cols} rows={rows} cells={cellsFor(cols, rows)} />
+        <els.Image key={VIEW} columns={cols} rows={rows} alt="waitroom game view" source={sourceFor()} />
         <els.Client key={INPUT} module="./pane-input.tsx" props={{ hint: 'WASD move · space fire · Q/E look · Esc back to Claude' }} />
       </els.Box>
     )
