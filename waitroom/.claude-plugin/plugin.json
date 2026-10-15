@@ -1,0 +1,6 @@
+{
+  "name": "waitroom",
+  "version": "0.1.0",
+  "description": "Mirror a hosted browser game into a pane while Claude works. Playable with the keyboard; closes when Claude finishes.",
+  "author": { "name": "talyaak" }
+}
