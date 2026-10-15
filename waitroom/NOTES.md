@@ -14,9 +14,9 @@
 
 ## Decision: the default URL (resolved)
 
-Decided by the user: the Zombies URL is the default. Config stays in `hooks/config.ts`; the change is easy to revert. The IP and commercial-game risk is stated in the README. Earlier findings:
+Decision (revised): no game URL ships in the repo; the user supplies it with `/waitroom url` or `WAITROOM_URL`. Earlier spike findings, from a commercial game on a third-party site:
 
-The default URL (`https://vel.gg/bo1z/verruckt`) loads **Call of Duty: Black Ops, Zombies "Verruckt"**, a commercial Activision game, from a third-party site. Measured in the spike:
+The spike URL loaded a commercial game from a third-party site. Measured:
 
 - The title screen reads "PRESS ANY KEY TO START" and "DOWNLOAD 309.3 MB".
 - Pressing a key starts a browser-side download (24%, about 30 s left in one sample). Each fresh profile repeats it.

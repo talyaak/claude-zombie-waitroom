@@ -1,6 +1,7 @@
-// The only place the default game URL lives. It is user-supplied config,
-// not a bundled or endorsed asset; override with `/waitroom url <https-url>`.
-export const DEFAULT_URL = 'https://vel.gg/bo1z/verruckt'
+// No game URL ships with this repo. The user supplies one with
+// `/waitroom url <https-url>` or the WAITROOM_URL environment variable.
+export const DEFAULT_URL: string =
+  (typeof process !== 'undefined' && process.env?.WAITROOM_URL) || ''
 export const STORE = { enabled: 'enabled', url: 'url', cache: 'cache' } as const
 
 // `fresh`: the browser profile lives in this boot's temp dir and is deleted on

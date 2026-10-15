@@ -4,16 +4,15 @@ A Claude Code mod. While Claude works, it shows a hosted browser game in a termi
 
 ## Important
 
-- **The default game is Call of Duty: Black Ops, Zombies "Verruckt".** It is loaded from a third-party site (`https://vel.gg/bo1z/verruckt`) that this mod does not control. The game is Activision's commercial property. waitroom does not bundle, copy or redistribute any of it. Your browser downloads what the site serves, into its profile.
-- Change the URL with `/waitroom url <https-url>`. The default lives in one place, `hooks/config.ts`.
-- **The site is third-party and unvetted.** It sees your IP address like any visit. Its content and the files it downloads are its responsibility, not this mod's.
-- The first start downloads a large file (about 309 MB at the time of writing). See `cache` below.
+- **No game is bundled and no default URL ships with this repo.** You choose the game by running `/waitroom url <https-url>` (or setting `WAITROOM_URL`). Use only a game you have the right to play.
+- **Any site you point it at is third-party and unvetted.** It sees your IP address like any visit. Its content and the files it downloads are its responsibility, not this mod's.
+- Some games download large files on first start. See `cache` below.
 
 ## Disclaimer and ownership
 
 - **I own no part of any game, site or content this project can load.** This repository contains only original code for a Claude Code mod (a state machine, a terminal pane and a browser-mirroring helper), released under the license in `waitroom/LICENSE`. It contains no game code, assets, images, audio or data.
-- **Call of Duty, Black Ops, Zombies, "Verruckt" and related names and content are the property of Activision Publishing, Inc. and its licensors.** This project is not affiliated with, endorsed by, sponsored by or connected to Activision, Microsoft, Anthropic or the operators of any game site. All trademarks belong to their respective owners.
-- **I do not host, copy, distribute or control any game.** The default URL is only a configuration string pointing at a third-party site. I do not operate that site and make no claim about whether it is licensed or authorized to serve the content. You can change or clear the URL at any time.
+- **Names and content of any game you load, for example Call of Duty and Activision titles, belong to their respective owners and licensors.** This project is not affiliated with, endorsed by, sponsored by or connected to Activision, Microsoft, Anthropic or the operators of any game site. All trademarks belong to their respective owners.
+- **I do not host, copy, distribute or control any game.** No default URL is included; the URL is whatever you configure. I do not operate any site you point it at and make no claim about whether it is licensed or authorized to serve its content.
 - **You are responsible for what you load.** When you run this mod, your own browser fetches content directly from the URL you configure. You are solely responsible for making sure you have the right to access and play it, and for following the terms of that site, the game's publisher and the laws where you live.
 - **No warranty.** The software is provided "as is" without warranty of any kind. I am not liable for any claim, damages or other liability arising from its use, including from third-party content, downloads or sites.
 - **Takedown.** If you are a rights holder and believe anything in this repository infringes your rights, open an issue or contact the repository owner and it will be reviewed and removed promptly.

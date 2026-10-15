@@ -47,6 +47,10 @@ export const register: Register = on => {
       after: (ms, fn) => $.clock.after(ms, fn),
     }
 
+    if (cmd.kind === 'on' && !(((await $.store.get(STORE.url)) as string | undefined) ?? DEFAULT_URL)) {
+      return { text: 'no game url set: run /waitroom url <https-url> first' }
+    }
+
     if (cmd.kind === 'on' || cmd.kind === 'off') {
       enabled = cmd.kind === 'on'
       await $.store.set(STORE.enabled, enabled)
@@ -56,7 +60,7 @@ export const register: Register = on => {
 
     if (cmd.kind === 'status') {
       const url = ((await $.store.get(STORE.url)) as string | undefined) ?? DEFAULT_URL
-      return { text: `${enabled ? 'on' : 'off'} (${url})` }
+      return { text: `${enabled ? 'on' : 'off'} (${url || 'no url set'})` }
     }
 
     if (cmd.kind === 'url') {
